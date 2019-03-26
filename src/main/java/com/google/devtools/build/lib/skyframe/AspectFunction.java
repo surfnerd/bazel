@@ -31,6 +31,7 @@ import com.google.devtools.build.lib.analysis.DependencyResolver.DependencyKind;
 import com.google.devtools.build.lib.analysis.DependencyResolver.InconsistentAspectOrderException;
 import com.google.devtools.build.lib.analysis.ResolvedToolchainContext;
 import com.google.devtools.build.lib.analysis.TargetAndConfiguration;
+import com.google.devtools.build.lib.analysis.ToolchainResolver;
 import com.google.devtools.build.lib.analysis.config.BuildConfiguration;
 import com.google.devtools.build.lib.analysis.config.BuildOptions;
 import com.google.devtools.build.lib.analysis.config.ConfigMatchingProvider;
@@ -412,15 +413,9 @@ public final class AspectFunction implements SkyFunction {
         try {
           ImmutableSet<Label> requiredToolchains = aspect.getDefinition().getRequiredToolchains();
           unloadedToolchainContext =
-              (UnloadedToolchainContext)
-                  env.getValueOrThrow(
-                      UnloadedToolchainContext.key()
-                          .configurationKey(BuildConfigurationValue.key(configuration))
-                          .requiredToolchainTypeLabels(requiredToolchains)
-                          .shouldSanityCheckConfiguration(
-                              configuration.trimConfigurationsRetroactively())
-                          .build(),
-                      ToolchainException.class);
+              new ToolchainResolver(env, BuildConfigurationValue.key(configuration))
+                  .setRequiredToolchainTypes(requiredToolchains)
+                  .resolve();
         } catch (ToolchainException e) {
           // TODO(katre): better error handling
           throw new AspectCreationException(
